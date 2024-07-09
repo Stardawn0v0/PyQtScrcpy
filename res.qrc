@@ -1,0 +1,9 @@
+<RCC>
+  <qresource prefix="icon">
+    <file>res/logo.png</file>
+    <file>res/qfluentwidgets.zh_CN.qm</file>
+    <file>res/more-app.svg</file>
+    <file>res/left-c.svg</file>
+    <file>res/right-c.svg</file>
+  </qresource>
+</RCC>
