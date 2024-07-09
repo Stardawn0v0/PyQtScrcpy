@@ -1,0 +1,118 @@
+name: Nuitka 构建
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: '构建类型'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+        - debug
+        - release
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: 设置 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        architecture: 'x64'
+        cache: 'pip'
+
+    - name: 缓存 pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: 安装依赖
+      run: |
+        pip install -r requirements.txt
+        pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
+
+    - name: 安装 UPX
+      if: github.event.inputs.build_type == 'release'
+      run: |
+        choco install upx
+
+    - name: Nuitka 构建
+      uses: Nuitka/Nuitka-Action@v1.1
+      with:
+        nuitka-version: main
+        script-name: main.py
+        onefile: true
+        windows-icon-from-ico: res\logo.ico
+        enable-plugins: pyqt5
+        include-data-files: |
+          bin/*=./bin/
+#        windows-uac-admin: true
+        disable-console: ${{ github.event.inputs.build_type == 'release' }}
+#        windows-console-mode: disable
+        output-file: ${{ github.event.inputs.build_type == 'debug' && 'PyQtScrcpy_debug' || 'PyQtScrcpy' }}
+        output-dir: dist
+        mingw64: true
+
+    - name: 重命名输出文件为中文名称
+      run: |
+        Rename-Item -Path "dist\PyQtScrcpy.exe" -NewName "PyQtScrcpy.exe"
+      shell: pwsh
+      if: github.event.inputs.build_type == 'release'
+
+    - name: 创建压缩包（release版）
+      if: github.event.inputs.build_type == 'release'
+      run: |
+        $toolVersion = python -c "exec(open('consts.py', encoding='utf-8').read()); print(TOOL_VERSION)"
+        $md5 = (Get-FileHash "dist/PyQtScrcpy.exe" -Algorithm MD5).Hash.ToLower()
+        New-Item -ItemType Directory -Path "PyQtScrcpy-$toolVersion-$md5"
+        Copy-Item "dist/PyQtScrcpy.exe" -Destination "PyQtScrcpy-$toolVersion-$md5"
+        Compress-Archive -Path "PyQtScrcpy-$toolVersion-$md5" -DestinationPath "PyQtScrcpy-$toolVersion-$md5.zip" -CompressionLevel Optimal
+        echo "TOOL_VERSION=$toolVersion" | Out-File -Append -FilePath $env:GITHUB_ENV  
+        echo "MD5=$md5" | Out-File -Append -FilePath $env:GITHUB_ENV
+      shell: pwsh
+
+
+    - name: 获取当前时间
+      id: current_time
+      run: echo "::set-output name=time::$(date +%Y%m%d%H%M%S)"
+
+    - name: 创建 Release
+      if: github.event.inputs.build_type == 'release'
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: Action自动构建-${{ env.TOOL_VERSION }}-${{ github.run_id }}-${{ github.run_number }}-${{ steps.current_time.outputs.time }}
+        release_name: PyQtScrcpy ${{ env.TOOL_VERSION }}-${{ github.run_id }}-${{ github.run_number }}-${{ steps.current_time.outputs.time }}
+        body: |
+          PyQtScrcpy 版本 ${{ env.TOOL_VERSION }}-${{ github.run_id }}-${{ github.run_number }}-${{ steps.current_time.outputs.time }} 发布
+        draft: false
+        prerelease: true
+
+    - name: 上传 Release 资源
+      if: github.event.inputs.build_type == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./PyQtScrcpy-${{ env.TOOL_VERSION }}-${{ env.MD5 }}.zip
+        asset_name: PyQtScrcpy-${{ env.TOOL_VERSION }}-${{ env.MD5 }}.zip
+        asset_content_type: application/zip
+
+    - name: 上传 Debug 构建产物
+      if: github.event.inputs.build_type == 'debug'
+      uses: actions/upload-artifact@v3
+      with:
+        name: PyQtScrcpy_debug
+        path: dist/PyQtScrcpy_debug.exe
+
