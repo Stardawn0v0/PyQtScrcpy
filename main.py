@@ -1,5 +1,6 @@
 import datetime
 import os
+import platform
 import sys
 import re
 import subprocess
@@ -51,7 +52,9 @@ class MainWindow(AcrylicWindow, Ui_Form):
         self.resize(self.minimumWidth(), self.height())
         self.previous_size = self.size()
 
-        self.windowEffect.setMicaEffect(self.winId())
+        if 'Windows-11' in platform.platform():
+            self.windowEffect.setMicaEffect(self.winId())
+
         self.setWindowTitle(f'{TOOL_NAME} {TOOL_VERSION}')
         self.setWindowIcon(QtGui.QIcon(":/icon/res/logo.png"))
         self.titleBar.raise_()
@@ -180,9 +183,11 @@ class MainWindow(AcrylicWindow, Ui_Form):
             args.append('--tcpip')
 
         args, invalid_args = util.check_args(args)
-
-        cmd = f'start cmd /c "{SCRCPY} {" ".join(args)} || echo. & echo.\033[31m\033[1m---Scrcpy进程已结束 按任意键关闭窗口---\033[0m & pause>nul"'
-        subprocess.Popen(cmd, shell=True, creationflags=subprocess.CREATE_NEW_CONSOLE, cwd=BASEDIR)
+        if 'Windows' in platform.system():
+            cmd = f'start cmd /c "{SCRCPY} {" ".join(args)} || echo. & echo.\033[31m\033[1m---Scrcpy进程已结束 按任意键关闭窗口---\033[0m & pause>nul"'
+        else:
+            cmd = f'{SCRCPY} {" ".join(args)}'
+        subprocess.Popen(cmd, shell=True, creationflags=CREATE_NEW_CONSOLE, cwd=BASEDIR)
 
     def refresh_pro_page(self):
         self.slide_pro_page.emit(self.refresh_page)
@@ -237,8 +242,8 @@ class MainWindow(AcrylicWindow, Ui_Form):
         self.devices_card.setDisabled(True)
 
         def _():
-            subprocess.run(f'{ADB} kill-server', shell=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
-            subprocess.run(f'{ADB} start-server', shell=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
+            subprocess.run(f'{ADB} kill-server', shell=True, creationflags=CREATE_NO_WINDOW)
+            subprocess.run(f'{ADB} start-server', shell=True, creationflags=CREATE_NO_WINDOW)
             self.devices_card.setDisabled(False)
 
             self.get_devices()

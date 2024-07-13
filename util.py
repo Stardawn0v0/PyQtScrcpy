@@ -18,7 +18,7 @@ def devices():
     offline_devices = []
 
     # 执行adb devices命令获取设备列表
-    result = subprocess.run([ADB, 'devices'], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+    result = subprocess.run([ADB, 'devices'], capture_output=True, text=True, creationflags=CREATE_NO_WINDOW)
     output = result.stdout
 
     # 解析adb devices命令的输出
@@ -31,7 +31,7 @@ def devices():
                 # 获取设备名称
                 device_name_result = subprocess.run(
                     [ADB, '-s', device_id, 'shell', 'settings', 'get', 'global', 'device_name'], capture_output=True,
-                    text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                    text=True, creationflags=CREATE_NO_WINDOW)
                 device_name = device_name_result.stdout.strip()
                 devices[device_id] = device_name
             elif status == 'unauthorized':
@@ -62,7 +62,7 @@ def get_display_ids(device_id=None):
         command.extend(['--serial', device_id])
 
     try:
-        result = subprocess.run(command, capture_output=True, text=True, check=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        result = subprocess.run(command, capture_output=True, text=True, check=True, creationflags=CREATE_NO_WINDOW)
         output = result.stdout
 
         lines = output.strip().split('\n')
@@ -88,7 +88,7 @@ def get_camera_sizes():
     """
     camera_sizes = {}
 
-    result = subprocess.run([SCRCPY, '--list-camera-sizes'], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+    result = subprocess.run([SCRCPY, '--list-camera-sizes'], capture_output=True, text=True, creationflags=CREATE_NO_WINDOW)
     output = result.stdout
 
     current_camera_id = None
