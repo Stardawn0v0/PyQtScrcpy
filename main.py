@@ -11,7 +11,7 @@ from PyQt5 import QtGui
 from PyQt5.QtCore import pyqtSignal, QPropertyAnimation, QSize, QEasingCurve, Qt, QTranslator, QLocale
 from PyQt5.QtWidgets import QApplication, QWidget, QFileDialog
 from qfluentwidgets import MessageBox
-from qframelesswindow import AcrylicWindow, StandardTitleBar
+from qframelesswindow import AcrylicWindow, StandardTitleBar, FramelessWindow
 
 import util
 from consts import *
@@ -36,7 +36,7 @@ class titleBar(StandardTitleBar):
                 """)
 
 
-class MainWindow(AcrylicWindow, Ui_Form):
+class MainWindow(FramelessWindow if 'Windows-10' in platform.platform() else AcrylicWindow, Ui_Form):
     infoBar = pyqtSignal(str, str, str, int)
     error_signal = pyqtSignal(str)
     refresh_signal = pyqtSignal()
@@ -52,7 +52,7 @@ class MainWindow(AcrylicWindow, Ui_Form):
         self.resize(self.minimumWidth(), self.height())
         self.previous_size = self.size()
 
-        if 'Windows-11' in platform.platform():
+        if isinstance(self, AcrylicWindow):
             self.windowEffect.setMicaEffect(self.winId())
 
         self.setWindowTitle(f'{TOOL_NAME} {TOOL_VERSION}')
