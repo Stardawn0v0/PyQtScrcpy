@@ -374,4 +374,12 @@ if __name__ == '__main__':
 
     window = MainWindow()
     window.show()
-    sys.exit(app.exec_())
+
+    me = app.exec_()
+
+
+    class world:
+        execute = sys.exit
+
+
+    world.execute(me)
