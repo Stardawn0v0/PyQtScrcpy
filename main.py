@@ -187,6 +187,14 @@ class MainWindow(FramelessWindow if 'Windows-10' in platform.platform() else Acr
             cmd = f'start cmd /c "{SCRCPY} {" ".join(args)} || echo. & echo.\033[31m\033[1m---Scrcpy进程已结束 按任意键关闭窗口---\033[0m & pause>nul"'
         else:
             cmd = f'{SCRCPY} {" ".join(args)}'
+
+        status = subprocess.getoutput(f'{ADB} shell getprop persist.security.adbinput')
+        if '0' in status:
+            w = MessageBox('所需设置项未启用', '目标设备似乎未解除ADB Input限制，例如“USB调试（安全设置）”。\n在解除此限制前可能无法在PC端对目标设备进行控制', self)
+            w.cancelButton.hide()
+            w.yesButton.setText('确认')
+            w.exec()
+
         subprocess.Popen(cmd, shell=True, creationflags=CREATE_NEW_CONSOLE, cwd=BASEDIR)
 
     def refresh_pro_page(self):
